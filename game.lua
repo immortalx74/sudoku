@@ -108,13 +108,13 @@ end
 
 local function DrawGrid()
 	window.pass:setColor( 0, 0, 0 )
-	local left      = (window.tex_w / 2) - (metrics.grid_size / 2)
-	local top       = (window.tex_h / 2) - (metrics.grid_size / 2)
 	local cell_size = metrics.grid_size / 9
+	local left      = (window.tex_w / 2) - (metrics.grid_size / 2)
+	local top       = (window.tex_h / 2) - (metrics.grid_size / 2) - cell_size
 
-	for i = 1, 10 do
+	for i = 1, 12 do
 		window.pass:line( left, top, 0, left + metrics.grid_size, top, 0 )
-		if (i - 1) % 3 == 0 then
+		if (i - 1) % 3 == 0 or i > 10 then
 			window.pass:line( left, top - 1, 0, left + metrics.grid_size, top - 1, 0 )
 			window.pass:line( left, top + 1, 0, left + metrics.grid_size, top + 1, 0 )
 		end
@@ -122,7 +122,7 @@ local function DrawGrid()
 	end
 
 	left = (window.tex_w / 2) - (metrics.grid_size / 2)
-	top  = (window.tex_h / 2) - (metrics.grid_size / 2)
+	top  = (window.tex_h / 2) - (metrics.grid_size / 2) - cell_size
 
 	for i = 1, 10 do
 		window.pass:line( left, top, 0, left, top + metrics.grid_size, 0 )
@@ -132,13 +132,29 @@ local function DrawGrid()
 		end
 		left = left + cell_size
 	end
+
+	left         = (window.tex_w / 2) - (metrics.grid_size / 2)
+	local bottom = (window.tex_h / 2) + (metrics.grid_size / 2)
+
+	for i = 1, 10 do
+		window.pass:line( left, bottom, 0, left, bottom + cell_size, 0 )
+		window.pass:line( left - 1, bottom, 0, left - 1, bottom + cell_size, 0 )
+		window.pass:line( left + 1, bottom, 0, left + 1, bottom + cell_size, 0 )
+
+		if i < 10 then
+			local cell = cells[ i ]
+			window.pass:setColor( cell.text_color )
+			window.pass:text( tostring( i ), left + (cell_size / 2), bottom + (cell_size / 2), 0, metrics.text_scale )
+		end
+		left = left + cell_size
+	end
 end
 
 local function DrawCell( index )
 	local step = metrics.grid_size / 9
 
 	local left = (window.tex_w / 2) - (metrics.grid_size / 2) + (step / 2)
-	local top = (window.tex_h / 2) - (metrics.grid_size / 2) + (step / 2)
+	local top = (window.tex_h / 2) - (metrics.grid_size / 2) + (step / 2) - step
 
 	local row, col = IndexToCoords( index )
 
@@ -219,9 +235,16 @@ local function TrackMouseState()
 		mouse.state = e_mouse_state.released
 	end
 
-	local left      = (window.tex_w / 2) - (metrics.grid_size / 2)
-	local top       = (window.tex_h / 2) - (metrics.grid_size / 2)
+	-- Right button delete
+	if lovr.system.isMouseDown( 2 ) then
+		if cells[ cur_cell_idx ].editable then
+			cells[ cur_cell_idx ].num = nil
+		end
+	end
+
 	local cell_size = metrics.grid_size / 9
+	local left      = (window.tex_w / 2) - (metrics.grid_size / 2)
+	local top       = (window.tex_h / 2) - (metrics.grid_size / 2) - cell_size
 
 	local cx        = math.floor( (mouse.x - left) / (cell_size) ) + 1
 	local cy        = math.floor( (mouse.y - top) / (cell_size) ) + 1
@@ -229,12 +252,20 @@ local function TrackMouseState()
 	if mouse.state == e_mouse_state.clicked then
 		if cx >= 1 and cx <= 9 and cy >= 1 and cy <= 9 then
 			cur_cell_idx = CoordsToIndex( cy, cx )
+		elseif cx >= 1 and cx <= 9 and cy == 11 then
+			if cells[ cur_cell_idx ].editable then
+				cells[ cur_cell_idx ].num = cx
+			end
 		end
 	end
 end
 
 local function GetKeyboardInput()
 	local row, col = IndexToCoords( cur_cell_idx )
+
+	if lovr.system.wasKeyPressed( "f2" ) then
+		GenerateGrid()
+	end
 
 	if lovr.system.wasKeyPressed( "right" ) then
 		if col < 9 then
@@ -320,7 +351,7 @@ function Game.Render()
 	DrawAllCells()
 	DrawGrid()
 
-	window.pass:text( "[F2 to Generate new puzzle]", window.tex_w / 2, metrics.msg_top, 0, metrics.text_scale * 0.4 )
+	window.pass:text( "[F2 to Generate new puzzle - Right click to erase current cell]", window.tex_w / 2, metrics.msg_top, 0, metrics.text_scale * 0.4 )
 end
 
 return Game

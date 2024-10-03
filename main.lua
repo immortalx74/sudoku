@@ -5,12 +5,6 @@ function lovr.load()
 	Game.Init()
 end
 
-function lovr.keypressed( key, scancode, repeating )
-	if key == "f2" then
-		GenerateGrid()
-	end
-end
-
 function lovr.update( dt )
 	Game.Update()
 end
